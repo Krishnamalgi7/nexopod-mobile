@@ -1,7 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import Loader from "@/components/common/Loader";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import {
-  ImageBackground,
+  Image,
   PanResponder,
   Pressable,
   Text,
@@ -20,6 +22,35 @@ const onboardingImages = [
 export default function HomeScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const router = useRouter();
+
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSession = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("shopOwnerToken");
+
+        if (token) {
+          router.replace("/dashboard");
+          return;
+        }
+      } catch (error) {
+        console.error("[Onboarding] Session check failed.");
+      } finally {
+        if (isMounted) {
+          setCheckingSession(false);
+        }
+      }
+    };
+
+    checkSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   // 2. Handle swipe gestures between onboarding screens.
   const swipeResponder = useRef(
@@ -49,9 +80,12 @@ export default function HomeScreen() {
     router.push("/login");
   };
 
+  if (checkingSession) {
+    return <Loader fullScreen message="Checking your session..." />;
+  }
+
   return (
     <View className="flex-1 bg-[#EFFFFB]" {...swipeResponder.panHandlers}>
-
       {/* 2. Display onboarding artwork across the screen. */}
       <Animated.View
         key={currentSlide}
@@ -59,7 +93,7 @@ export default function HomeScreen() {
         exiting={FadeOutLeft.duration(300)}
         className="absolute inset-0"
       >
-        <ImageBackground
+        <Image
           source={onboardingImages[currentSlide]}
           resizeMode="cover"
           className="h-full w-full"

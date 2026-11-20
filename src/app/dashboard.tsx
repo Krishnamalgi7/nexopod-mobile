@@ -1,33 +1,75 @@
-
-import React, { useCallback, useEffect, useState } from "react";
-import { Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+
 import * as SecureStore from "expo-secure-store";
 import {
-  Store,
-  Phone,
-  Clock3,
-  MapPin,
+  Bell,
+  CalendarDays,
   ChevronRight,
+  CircleCheck,
+  Clock3,
+  LogOut,
+  Store,
+  Home,
+  ClipboardList,
+  BriefcaseBusiness,
+  UserRound,
 } from "lucide-react-native";
 
-import { API_BASE_URL } from "@/config/api";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import Loader from "@/components/common/Loader";
 import RefreshableScrollView from "@/components/common/RefreshableScrollView";
+import { API_BASE_URL } from "@/config/api";
 
-interface StoreDetails {
-  name: string;
-  contactNumber: string;
-  addressLink: string;
-  timings: string;
-  services: string[];
+import {
+  connectShopOwnerSocket,
+  disconnectShopOwnerSocket,
+  subscribeToBookingEvents,
+} from "@/services/socket";
+
+import BottomNavigation from "@/components/common/BottomNavigation";
+
+interface DashboardData {
+  store: {
+    name: string;
+    isActive: boolean;
+    image: {
+      type: string;
+      path: string;
+    };
+  };
+  overview: {
+    total: number;
+    completed: number;
+    pending: number;
+  };
+  unreadCount: number;
+  recentBookings: {
+    id: string;
+    service: string;
+    startAt: string;
+    status: "confirmed" | "in_progress" | "completed";
+    customerName: string;
+  }[];
 }
 
 export default function DashboardScreen() {
   const router = useRouter();
 
-  const [store, setStore] = useState<StoreDetails | null>(null);
+  const handleLogout = async () => {
+    try {
+      disconnectShopOwnerSocket();
+      await SecureStore.deleteItemAsync("shopOwnerToken");
+      router.replace("/");
+    } catch (error) {
+      console.error("[Dashboard] Logout failed.");
+      setError("Unable to log out. Please try again.");
+    }
+  };
+
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -46,13 +88,16 @@ export default function DashboardScreen() {
       }
 
       // 3. Request the authenticated store details.
-      const response = await fetch(`${API_BASE_URL}/api/shop-owners/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${API_BASE_URL}/api/shop-owners/dashboard`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       const result = await response.json();
 
@@ -68,14 +113,14 @@ export default function DashboardScreen() {
       }
 
       // 5. Save the authenticated store information.
-      setStore(result.data.store);
+      setDashboard(result.data);
     } catch (error) {
       console.error("[Dashboard] Store details request failed.");
 
       setError(
         error instanceof Error
           ? error.message
-          : "Unable to connect to the server."
+          : "Unable to connect to the server.",
       );
     } finally {
       setLoading(false);
@@ -83,9 +128,24 @@ export default function DashboardScreen() {
     }
   }, [router]);
 
-  // 6. Load store details when the dashboard opens.
+  // Load store details when the dashboard opens.
   useEffect(() => {
     fetchStoreDetails();
+
+    let isMounted = true;
+
+    const unsubscribe = subscribeToBookingEvents(() => {
+      if (isMounted) {
+        fetchStoreDetails();
+      }
+    });
+
+    connectShopOwnerSocket();
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [fetchStoreDetails]);
 
   // 7. Reload store details when the user pulls down.
@@ -103,54 +163,199 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="px-5 pb-8">
-          {/* 8. Dashboard header */}
+          {/* Dashboard Header */}
           <View className="mb-7 mt-4">
-            <Text className="text-sm font-medium text-[#64748B]">
-              NexoPod Shop Owner
-            </Text>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-2xl font-extrabold text-[#123D4A]">
+                  Nexo<Text className="text-[#00B894]">Pod</Text>
+                </Text>
+                <Text className="mt-1 text-sm text-[#64748B]">Shop Owner</Text>
+              </View>
 
-            <Text className="mt-2 text-2xl font-bold text-[#123D4A]">
+              <View className="flex-row items-center gap-3">
+                <Pressable
+                  onPress={() => router.push("/notifications")}
+                  className="h-12 w-12 items-center justify-center rounded-2xl border border-[#E8EEF1] bg-white"
+                >
+                  <Bell size={23} color="#123D4A" />
+
+                  {(dashboard?.unreadCount ?? 0) > 0 && (
+                    <View className="absolute -right-1 -top-1 min-w-5 h-5 items-center justify-center rounded-full bg-red-500 px-1">
+                      <Text className="text-[10px] font-bold text-white">
+                        {(dashboard?.unreadCount ?? 0) > 99
+                          ? "99+"
+                          : dashboard?.unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-[#087C68]">
+                  <Store size={23} color="#FFFFFF" />
+                </View>
+              </View>
+            </View>
+
+            <Text className="mt-7 text-3xl font-extrabold text-[#111827]">
               Dashboard
             </Text>
 
-            <Text className="mt-1 text-sm text-[#64748B]">
-              Manage your store from one place.
+            <Text className="mt-2 text-base text-[#64748B]">
+              Here's what's happening at your store today.
             </Text>
           </View>
 
-          {/* 9. Store overview card */}
-          <View className="rounded-2xl bg-[#123D4A] p-5">
+          {/* Store Overview */}
+          <View className="overflow-hidden rounded-3xl bg-[#006B63] p-5">
             <View className="flex-row items-center">
-              <View className="h-11 w-11 items-center justify-center rounded-xl bg-white/15">
-                <Store size={22} color="#FFFFFF" />
+              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#00A98F]">
+                <Store size={34} color="#FFFFFF" />
               </View>
 
-              <View className="ml-3 flex-1">
-                <Text className="text-xs font-medium text-[#B7DCD5]">
-                  YOUR STORE
+              <View className="ml-4 flex-1">
+                <Text className="text-xl font-extrabold text-white">
+                  {dashboard?.store.name || "Loading store..."}
                 </Text>
 
-                <Text className="mt-1 text-lg font-bold text-white">
-                  {store?.name || "Loading store..."}
-                </Text>
+                <View
+                  className={`mt-3 flex-row items-center self-start rounded-full px-3 py-1 ${
+                    dashboard?.store.isActive ? "bg-[#00A86B]" : "bg-[#D94848]"
+                  }`}
+                >
+                  <View className="mr-2 h-2 w-2 rounded-full bg-white" />
+                  <Text className="text-xs font-bold text-white">
+                    {dashboard?.store.isActive ? "Active" : "Inactive"}
+                  </Text>
+                </View>
               </View>
 
-              <ChevronRight size={20} color="#FFFFFF" />
+              <Store size={54} color="#B7E9D8" />
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => router.push("/bookings")}
+            className="mt-5 flex-row items-center rounded-2xl border border-[#E8EEF1] bg-white p-4 active:bg-[#F0FDF9]"
+          >
+            <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#E6FBF5]">
+              <CalendarDays size={23} color="#00B894" />
             </View>
 
-            <View className="my-5 h-px bg-white/20" />
+            <View className="ml-3 flex-1">
+              <Text className="text-base font-bold text-[#123D4A]">
+                Manage Bookings
+              </Text>
+              <Text className="mt-1 text-xs text-[#64748B]">
+                View and manage customer bookings
+              </Text>
+            </View>
 
-            <Text className="text-sm leading-6 text-[#D5E8E5]">
-              Welcome to your NexoPod store dashboard.
+            <ChevronRight size={20} color="#64748B" />
+          </Pressable>
+
+          {/* Today's Overview */}
+
+          {/* Today's Overview */}
+          <View className="mb-4 mt-7">
+            <Text className="text-xl font-extrabold text-[#123D4A]">
+              Today's Overview
             </Text>
+          </View>
+
+          <View className="flex-row gap-3">
+            <View className="flex-1 items-center rounded-2xl border border-[#E5F1F0] bg-white p-3">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#DDFBF3]">
+                <CalendarDays size={25} color="#00A985" />
+              </View>
+              <Text className="mt-3 text-2xl font-extrabold text-[#123D4A]">
+                {dashboard?.overview.total ?? 0}
+              </Text>
+              <Text className="mt-1 text-center text-xs font-semibold text-[#64748B]">
+                Bookings
+              </Text>
+            </View>
+
+            <View className="flex-1 items-center rounded-2xl border border-[#DDF2E7] bg-white p-3">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#DDF8E8]">
+                <CircleCheck size={26} color="#0BA85B" />
+              </View>
+              <Text className="mt-3 text-2xl font-extrabold text-[#123D4A]">
+                {dashboard?.overview.completed ?? 0}
+              </Text>
+              <Text className="mt-1 text-center text-xs font-semibold text-[#64748B]">
+                Completed
+              </Text>
+            </View>
+
+            <View className="flex-1 items-center rounded-2xl border border-[#F5EBDD] bg-white p-3">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF0D3]">
+                <Clock3 size={25} color="#F09A18" />
+              </View>
+              <Text className="mt-3 text-2xl font-extrabold text-[#123D4A]">
+                {dashboard?.overview.pending ?? 0}
+              </Text>
+              <Text className="mt-1 text-center text-xs font-semibold text-[#64748B]">
+                Pending
+              </Text>
+            </View>
+          </View>
+
+          {/* Recent Bookings */}
+          <View className="mb-4 mt-7 flex-row items-center justify-between">
+            <Text className="text-xl font-extrabold text-[#123D4A]">
+              Recent Bookings
+            </Text>
+
+            <Pressable onPress={() => router.push("/bookings")}>
+              <Text className="text-sm font-bold text-[#00A985]">
+                View All ›
+              </Text>
+            </Pressable>
+          </View>
+
+          <View className="rounded-2xl border border-[#E8EEF1] bg-white p-4">
+            {dashboard?.recentBookings.length ? (
+              dashboard.recentBookings.map((booking) => (
+                <View
+                  key={booking.id}
+                  className="border-b border-[#F1F5F9] py-3 last:border-b-0"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <Text className="flex-1 text-sm font-bold text-[#123D4A]">
+                      {booking.customerName}
+                    </Text>
+                    <Text className="ml-2 text-xs font-semibold text-[#00A985]">
+                      {booking.status.replace("_", " ")}
+                    </Text>
+                  </View>
+
+                  <Text className="mt-1 text-sm text-[#64748B]">
+                    {booking.service}
+                  </Text>
+
+                  <Text className="mt-1 text-xs text-[#94A3B8]">
+                    {new Date(booking.startAt).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text className="py-4 text-center text-sm text-[#94A3B8]">
+                No recent bookings available.
+              </Text>
+            )}
           </View>
 
           {/* 10. Display API errors */}
           {error ? (
             <View className="mt-5 rounded-xl border border-red-100 bg-red-50 p-4">
-              <Text className="text-sm font-medium text-red-600">
-                {error}
-              </Text>
+              <Text className="text-sm font-medium text-red-600">{error}</Text>
               <Text
                 onPress={() => {
                   setLoading(true);
@@ -162,98 +367,14 @@ export default function DashboardScreen() {
               </Text>
             </View>
           ) : null}
-
-          {/* 11. Store information */}
-          <View className="mb-3 mt-7">
-            <Text className="text-lg font-bold text-[#123D4A]">
-              Store Information
-            </Text>
-            <Text className="mt-1 text-sm text-[#64748B]">
-              Your registered store details
-            </Text>
-          </View>
-
-          <View className="rounded-2xl border border-[#E8EEF1] bg-white p-4">
-            <View className="flex-row items-center py-3">
-              <Phone size={19} color="#00B894" />
-              <View className="ml-3 flex-1">
-                <Text className="text-xs text-[#94A3B8]">
-                  Contact Number
-                </Text>
-                <Text className="mt-1 text-sm font-semibold text-[#123D4A]">
-                  {store?.contactNumber || "—"}
-                </Text>
-              </View>
-            </View>
-
-            <View className="h-px bg-[#F1F5F9]" />
-
-            <View className="flex-row items-center py-3">
-              <Clock3 size={19} color="#00B894" />
-              <View className="ml-3 flex-1">
-                <Text className="text-xs text-[#94A3B8]">
-                  Operating Hours
-                </Text>
-                <Text className="mt-1 text-sm font-semibold text-[#123D4A]">
-                  {store?.timings || "—"}
-                </Text>
-              </View>
-            </View>
-
-            <View className="h-px bg-[#F1F5F9]" />
-
-            <View className="flex-row items-center py-3">
-              <MapPin size={19} color="#00B894" />
-              <View className="ml-3 flex-1">
-                <Text className="text-xs text-[#94A3B8]">
-                  Store Location
-                </Text>
-                <Text
-                  numberOfLines={2}
-                  className="mt-1 text-sm font-semibold text-[#123D4A]"
-                >
-                  {store?.addressLink || "—"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* 12. Store services */}
-          <View className="mb-3 mt-7">
-            <Text className="text-lg font-bold text-[#123D4A]">
-              Store Services
-            </Text>
-            <Text className="mt-1 text-sm text-[#64748B]">
-              Services available at your store
-            </Text>
-          </View>
-
-          <View className="rounded-2xl border border-[#E8EEF1] bg-white p-4">
-            {store?.services?.length ? (
-              store.services.map((service, index) => (
-                <View
-                  key={`${service}-${index}`}
-                  className="flex-row items-center py-2"
-                >
-                  <View className="mr-3 h-2 w-2 rounded-full bg-[#00B894]" />
-                  <Text className="text-sm font-medium text-[#123D4A]">
-                    {service}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <Text className="text-sm text-[#64748B]">
-                No services registered.
-              </Text>
-            )}
-          </View>
         </View>
       </RefreshableScrollView>
 
+      {/* Bottom Navigation */}
+      <BottomNavigation activeTab="home" />
+
       {/* 13. Show the initial loading indicator */}
-      {loading && (
-        <Loader fullScreen message="Loading your store..." />
-      )}
+      {loading && <Loader fullScreen message="Loading your store..." />}
     </SafeAreaView>
   );
 }

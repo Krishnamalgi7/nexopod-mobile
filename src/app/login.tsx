@@ -25,7 +25,7 @@ export default function LoginScreen() {
 
   const [otpRequested, setOtpRequested] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
-  const [developmentOtp, setDevelopmentOtp] = useState("");
+  
 
   // 1. Request a new OTP from the backend.
   const handleSendOtp = async () => {
@@ -58,7 +58,7 @@ export default function LoginScreen() {
       setOtpRequested(true);
       setOtp("");
       setSecondsRemaining(result.data.expiresIn || 120);
-      setDevelopmentOtp(result.data.developmentOtp || "");
+      
 
       console.log("[ShopOwner] OTP request successful.");
     } catch (error) {
@@ -205,7 +205,7 @@ export default function LoginScreen() {
                   setOtpRequested(false);
                   setOtp("");
                   setSecondsRemaining(0);
-                  setDevelopmentOtp("");
+                  
                   setError("");
                 }}
                 placeholder="Enter mobile number"
@@ -239,11 +239,7 @@ export default function LoginScreen() {
                   />
                 </View>
 
-                {developmentOtp ? (
-                  <Text className="mb-3 text-xs text-[#64748B]">
-                    Development OTP: {developmentOtp}
-                  </Text>
-                ) : null}
+                
 
                 <View className="mb-6 flex-row items-center justify-between">
                   {secondsRemaining > 0 ? (
@@ -288,13 +284,6 @@ export default function LoginScreen() {
                     : "Send OTP"}
               </Text>
             </Pressable>
-
-            {/* 9. Display login or OTP request errors. */}
-            {error ? (
-              <Text className="mt-3 text-center text-sm text-red-500">
-                {error}
-              </Text>
-            ) : null}
 
             {/* 11. Display login or OTP request errors. */}
             {error ? (
