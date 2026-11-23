@@ -89,6 +89,7 @@ export default function ProfileScreen() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileRequest, setProfileRequest] = useState<{
     status: "pending" | "approved" | "rejected";
+    _id: string;
     rejectionReason?: string;
     createdAt?: string;
     reviewedAt?: string;
@@ -96,6 +97,10 @@ export default function ProfileScreen() {
       isActive?: boolean;
     };
   } | null>(null);
+
+  const [profileRequestNoticeVisible, setProfileRequestNoticeVisible] =
+    useState(true);
+
   const [editWeeklyTimings, setEditWeeklyTimings] = useState<
     Record<string, DayTiming>
   >({});
@@ -175,7 +180,16 @@ export default function ProfileScreen() {
       const result = await response.json();
 
       if (result.success) {
-        setProfileRequest(result.data.request || null);
+        const request = result.data.request || null;
+        setProfileRequest(request);
+
+        if (request?._id) {
+          const seenRequestId = await SecureStore.getItemAsync(
+            "seenProfileRequestId",
+          );
+
+          setProfileRequestNoticeVisible(seenRequestId !== request._id);
+        }
       }
     } catch (err) {
       console.error("Unable to fetch profile request status:", err);
@@ -502,72 +516,91 @@ export default function ProfileScreen() {
             <Text className="mb-3 text-sm text-red-500">{error}</Text>
           ) : null}
 
-          {profileRequest && (
-            <View
-              className={`mb-4 rounded-xl border p-4 ${
-                profileRequest.status === "pending"
-                  ? "border-amber-200 bg-amber-50"
-                  : profileRequest.status === "approved"
-                    ? "border-green-200 bg-green-50"
-                    : "border-red-200 bg-red-50"
-              }`}
-            >
-              <Text
-                className={`text-sm font-bold ${
+          {profileRequest &&
+            (profileRequest.status === "pending" ||
+              profileRequestNoticeVisible) && (
+              <View
+                className={`relative mb-4 rounded-xl border p-4 ${
                   profileRequest.status === "pending"
-                    ? "text-amber-800"
+                    ? "border-amber-200 bg-amber-50"
                     : profileRequest.status === "approved"
-                      ? "text-green-800"
-                      : "text-red-800"
+                      ? "border-green-200 bg-green-50"
+                      : "border-red-200 bg-red-50"
                 }`}
               >
-                {profileRequest.proposedProfile?.isActive === false
-                  ? profileRequest.status === "pending"
-                    ? "Deactivation Request Pending"
-                    : profileRequest.status === "approved"
-                      ? "Deactivation Approved"
-                      : "Deactivation Request Rejected"
-                  : profileRequest.proposedProfile?.isActive === true
-                    ? profileRequest.status === "pending"
-                      ? "Reactivation Request Pending"
-                      : profileRequest.status === "approved"
-                        ? "Reactivation Approved"
-                        : "Reactivation Request Rejected"
-                    : profileRequest.status === "pending"
-                      ? "Profile Changes Awaiting Approval"
-                      : profileRequest.status === "approved"
-                        ? "Profile Changes Approved"
-                        : "Profile Changes Rejected"}
-              </Text>
-
-              <Text className="mt-1 text-xs text-gray-600">
-                {profileRequest.proposedProfile?.isActive === false
-                  ? profileRequest.status === "pending"
-                    ? "Your store will remain active until the Super Admin approves deactivation."
-                    : profileRequest.status === "approved"
-                      ? "Your store deactivation has been approved."
-                      : "Your store remains active because the deactivation request was rejected."
-                  : profileRequest.proposedProfile?.isActive === true
-                    ? profileRequest.status === "pending"
-                      ? "Your store will remain inactive until the Super Admin approves reactivation."
-                      : profileRequest.status === "approved"
-                        ? "Your store reactivation has been approved."
-                        : "Your store remains inactive because the reactivation request was rejected."
-                    : profileRequest.status === "pending"
-                      ? "Your submitted changes are being reviewed. Your current approved profile remains visible until approval."
-                      : profileRequest.status === "approved"
-                        ? "Your requested store profile changes have been approved."
-                        : "Your requested changes were not approved."}
-              </Text>
-
-              {profileRequest.status === "rejected" &&
-                profileRequest.rejectionReason && (
-                  <Text className="mt-2 text-xs font-medium text-red-700">
-                    Reason: {profileRequest.rejectionReason}
-                  </Text>
+                {profileRequest.status !== "pending" && (
+                  <Pressable
+                    onPress={async () => {
+                      if (profileRequest._id) {
+                        await SecureStore.setItemAsync(
+                          "seenProfileRequestId",
+                          profileRequest._id,
+                        );
+                      }
+                      setProfileRequestNoticeVisible(false);
+                    }}
+                    className="absolute right-3 top-3 z-10 p-1"
+                  >
+                    <X size={18} color="#64748b" />
+                  </Pressable>
                 )}
-            </View>
-          )}
+
+                <Text
+                  className={`text-sm font-bold ${
+                    profileRequest.status === "pending"
+                      ? "text-amber-800"
+                      : profileRequest.status === "approved"
+                        ? "text-green-800"
+                        : "text-red-800"
+                  }`}
+                >
+                  {profileRequest.proposedProfile?.isActive === false
+                    ? profileRequest.status === "pending"
+                      ? "Deactivation Request Pending"
+                      : profileRequest.status === "approved"
+                        ? "Deactivation Approved"
+                        : "Deactivation Request Rejected"
+                    : profileRequest.proposedProfile?.isActive === true
+                      ? profileRequest.status === "pending"
+                        ? "Reactivation Request Pending"
+                        : profileRequest.status === "approved"
+                          ? "Reactivation Approved"
+                          : "Reactivation Request Rejected"
+                      : profileRequest.status === "pending"
+                        ? "Profile Changes Awaiting Approval"
+                        : profileRequest.status === "approved"
+                          ? "Profile Changes Approved"
+                          : "Profile Changes Rejected"}
+                </Text>
+
+                <Text className="mt-1 text-xs text-gray-600">
+                  {profileRequest.proposedProfile?.isActive === false
+                    ? profileRequest.status === "pending"
+                      ? "Your store will remain active until the Super Admin approves deactivation."
+                      : profileRequest.status === "approved"
+                        ? "Your store deactivation has been approved."
+                        : "Your store remains active because the deactivation request was rejected."
+                    : profileRequest.proposedProfile?.isActive === true
+                      ? profileRequest.status === "pending"
+                        ? "Your store will remain inactive until the Super Admin approves reactivation."
+                        : profileRequest.status === "approved"
+                          ? "Your store reactivation has been approved."
+                          : "Your store remains inactive because the reactivation request was rejected."
+                      : profileRequest.status === "pending"
+                        ? "Your submitted changes are being reviewed. Your current approved profile remains visible until approval."
+                        : profileRequest.status === "approved"
+                          ? "Your requested store profile changes have been approved."
+                          : "Your requested changes were not approved."}
+                </Text>
+
+                {profileRequest.status === "rejected" &&
+                  profileRequest.rejectionReason && (
+                    <Text className="mt-2 text-xs font-medium text-red-700">
+                      Reason: {profileRequest.rejectionReason}
+                    </Text>
+                  )}
+              </View>
+            )}
 
           <View className="rounded-2xl border border-gray-100 bg-white p-4">
             <View className="flex-row items-center">
