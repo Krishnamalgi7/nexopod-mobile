@@ -33,6 +33,7 @@ import BottomNavigation from "@/components/common/BottomNavigation";
 import OutsidePressModal from "@/components/common/OutsidePressModal";
 import { fetch as expoFetch } from "expo/fetch";
 import { File } from "expo-file-system";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 interface DayTiming {
   isClosed: boolean;
@@ -105,6 +106,41 @@ export default function ProfileScreen() {
     Record<string, DayTiming>
   >({});
 
+  const [timePicker, setTimePicker] = useState<{
+    day: string;
+    field: "openTime" | "closeTime";
+  } | null>(null);
+
+  const [timePickerDate, setTimePickerDate] = useState(new Date());
+
+  const parseTime = (value?: string) => {
+    const date = new Date();
+    const match = value?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+
+    if (match) {
+      let hours = Number(match[1]);
+      const minutes = Number(match[2]);
+
+      if (match[3].toUpperCase() === "PM" && hours !== 12) hours += 12;
+      if (match[3].toUpperCase() === "AM" && hours === 12) hours = 0;
+
+      date.setHours(hours, minutes, 0, 0);
+    } else {
+      date.setHours(9, 0, 0, 0);
+    }
+
+    return date;
+  };
+
+  const formatTime = (date: Date) => {
+    const hours24 = date.getHours();
+    const hours12 = hours24 % 12 || 12;
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const period = hours24 >= 12 ? "PM" : "AM";
+
+    return `${String(hours12).padStart(2, "0")}:${minutes} ${period}`;
+  };
+
   const [selectedMainImage, setSelectedMainImage] =
     useState<ImagePicker.ImagePickerAsset | null>(null);
 
@@ -125,7 +161,7 @@ export default function ProfileScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -139,7 +175,7 @@ export default function ProfileScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -282,7 +318,7 @@ export default function ProfileScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -302,7 +338,7 @@ export default function ProfileScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -332,7 +368,7 @@ export default function ProfileScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -352,7 +388,7 @@ export default function ProfileScreen() {
 
       if (response.status === 401) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -400,7 +436,7 @@ export default function ProfileScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -446,7 +482,7 @@ export default function ProfileScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -647,7 +683,12 @@ export default function ProfileScreen() {
                   }
 
                   setEditName(store.name);
-                  setEditContactNumber(store.contactNumber);
+                  setEditContactNumber(
+                    store.contactNumber
+                      .replace(/^\+91/, "")
+                      .replace(/\D/g, "")
+                      .slice(-10),
+                  );
                   setEditAddressLink(store.addressLink);
                   setEditServices(
                     store.services?.length ? [...store.services] : [],
@@ -751,7 +792,9 @@ export default function ProfileScreen() {
               <View className="ml-3 flex-1">
                 <Text className="text-xs text-gray-500">Contact Number</Text>
                 <Text className="mt-1 font-semibold text-gray-800">
-                  {store.contactNumber || "Not specified"}
+                  {store.contactNumber
+                    ? `+91 | ${store.contactNumber}`
+                    : "Not specified"}
                 </Text>
               </View>
             </View>
@@ -1121,14 +1164,22 @@ export default function ProfileScreen() {
           <Text className="mb-2 text-sm font-semibold text-gray-700">
             Contact Number
           </Text>
-          <TextInput
-            value={editContactNumber}
-            onChangeText={setEditContactNumber}
-            placeholder="Enter 10-digit contact number"
-            keyboardType="phone-pad"
-            maxLength={10}
-            className="mb-4 rounded-xl border border-gray-200 px-4 py-3 text-gray-800"
-          />
+          <View className="mb-4 flex-row items-center rounded-xl border border-gray-200">
+            <View className="border-r border-gray-200 px-4 py-3">
+              <Text className="font-semibold text-gray-700">+91</Text>
+            </View>
+
+            <TextInput
+              value={editContactNumber}
+              onChangeText={(value) =>
+                setEditContactNumber(value.replace(/\D/g, "").slice(0, 10))
+              }
+              placeholder="10-digit contact number"
+              keyboardType="phone-pad"
+              maxLength={10}
+              className="flex-1 px-4 py-3 text-gray-800"
+            />
+          </View>
 
           <Text className="mb-2 text-sm font-semibold text-gray-700">
             Google Maps Link
@@ -1251,40 +1302,34 @@ export default function ProfileScreen() {
                       <Text className="mb-1 text-xs text-gray-500">
                         Opening Time
                       </Text>
-                      <TextInput
-                        value={timing.openTime || ""}
-                        onChangeText={(value) =>
-                          setEditWeeklyTimings((current) => ({
-                            ...current,
-                            [dayKey]: {
-                              ...current[dayKey],
-                              openTime: value,
-                            },
-                          }))
-                        }
-                        placeholder="09:00 AM"
-                        className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800"
-                      />
+                      <Pressable
+                        onPress={() => {
+                          setTimePickerDate(parseTime(timing.openTime));
+                          setTimePicker({ day: dayKey, field: "openTime" });
+                        }}
+                        className="rounded-lg border border-gray-200 px-3 py-3"
+                      >
+                        <Text className="text-gray-800">
+                          {timing.openTime || "Select time"}
+                        </Text>
+                      </Pressable>
                     </View>
 
                     <View className="flex-1">
                       <Text className="mb-1 text-xs text-gray-500">
                         Closing Time
                       </Text>
-                      <TextInput
-                        value={timing.closeTime || ""}
-                        onChangeText={(value) =>
-                          setEditWeeklyTimings((current) => ({
-                            ...current,
-                            [dayKey]: {
-                              ...current[dayKey],
-                              closeTime: value,
-                            },
-                          }))
-                        }
-                        placeholder="09:00 PM"
-                        className="rounded-lg border border-gray-200 px-3 py-2 text-gray-800"
-                      />
+                      <Pressable
+                        onPress={() => {
+                          setTimePickerDate(parseTime(timing.closeTime));
+                          setTimePicker({ day: dayKey, field: "closeTime" });
+                        }}
+                        className="rounded-lg border border-gray-200 px-3 py-3"
+                      >
+                        <Text className="text-gray-800">
+                          {timing.closeTime || "Select time"}
+                        </Text>
+                      </Pressable>
                     </View>
                   </View>
                 )}
@@ -1292,9 +1337,28 @@ export default function ProfileScreen() {
             );
           })}
 
-          <Text className="mb-4 text-xs text-gray-500">
-            Enter time in 12-hour format, such as 09:00 AM or 09:00 PM.
-          </Text>
+          {timePicker && (
+            <DateTimePicker
+              value={timePickerDate}
+              mode="time"
+              display="default"
+              onChange={(event, selectedDate) => {
+                if (event.type === "set" && selectedDate) {
+                  const selectedTime = formatTime(selectedDate);
+
+                  setEditWeeklyTimings((current) => ({
+                    ...current,
+                    [timePicker.day]: {
+                      ...current[timePicker.day],
+                      [timePicker.field]: selectedTime,
+                    },
+                  }));
+                }
+
+                setTimePicker(null);
+              }}
+            />
+          )}
 
           <View className="flex-row gap-3">
             <Pressable

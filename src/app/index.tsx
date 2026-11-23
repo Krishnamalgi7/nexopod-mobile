@@ -2,13 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import Loader from "@/components/common/Loader";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
-import {
-  Image,
-  PanResponder,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Image, PanResponder, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ShieldCheck } from "lucide-react-native";
@@ -34,28 +28,27 @@ export default function HomeScreen() {
         const token = await SecureStore.getItemAsync("shopOwnerToken");
 
         if (token) {
-  const response = await fetch(
-    `${API_BASE_URL}/api/shop-owners/me`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
+          const response = await fetch(`${API_BASE_URL}/api/shop-owners/me`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
-  const result = await response.json();
+          const result = await response.json();
 
-  if (response.ok && result.success) {
-    router.replace(
-      result.data.store.isActive ? "/dashboard" : "/profile",
-    );
-    return;
-  }
+          if (response.ok && result.success) {
+            router.replace(
+              result.data.store.isActive
+                ? "/shopowner/dashboard"
+                : "/shopowner/profile",
+            );
+            return;
+          }
 
-  await SecureStore.deleteItemAsync("shopOwnerToken");
-  router.replace("/login");
-  return;
-}
+          await SecureStore.deleteItemAsync("shopOwnerToken");
+          router.replace("/auth/login");
+          return;
+        }
       } catch (error) {
         console.error("[Onboarding] Session check failed.");
       } finally {
@@ -97,7 +90,7 @@ export default function HomeScreen() {
       setCurrentSlide((previous) => previous + 1);
       return;
     }
-    router.push("/login");
+    router.push("/auth/login");
   };
 
   if (checkingSession) {

@@ -58,7 +58,7 @@ export default function BookingsScreen() {
         const token = await SecureStore.getItemAsync("shopOwnerToken");
 
         if (!token) {
-          router.replace("/login");
+          router.replace("/auth/login");
           return;
         }
 
@@ -72,7 +72,7 @@ export default function BookingsScreen() {
 
         if (response.status === 401) {
           await SecureStore.deleteItemAsync("shopOwnerToken");
-          router.replace("/login");
+          router.replace("/auth/login");
           return;
         }
 
@@ -113,7 +113,7 @@ export default function BookingsScreen() {
         const token = await SecureStore.getItemAsync("shopOwnerToken");
 
         if (!token) {
-          router.replace("/login");
+          router.replace("/auth/login");
           return null;
         }
 
@@ -138,12 +138,12 @@ export default function BookingsScreen() {
 
         if (response.status === 401) {
           await SecureStore.deleteItemAsync("shopOwnerToken");
-          router.replace("/login");
+          router.replace("/auth/login");
           return null;
         }
 
         if (response.status === 403) {
-          router.replace("/profile");
+          router.replace("/shopowner/profile");
           return;
         }
 
@@ -284,7 +284,7 @@ export default function BookingsScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -304,7 +304,7 @@ export default function BookingsScreen() {
 
       if (response.status === 401) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -345,7 +345,7 @@ export default function BookingsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-[#F8FAFC]">
       <View className="flex-row items-center px-5 pb-3 pt-4">
-        <BackButton />
+        <BackButton onPress={() => router.replace("/shopowner/dashboard")} />
 
         <View className="ml-4 flex-1">
           <Text className="text-xl font-bold text-[#123D4A]">Bookings</Text>

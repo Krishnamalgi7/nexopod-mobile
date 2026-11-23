@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Zap, Package } from "lucide-react-native";
-import BottomNavigation from "@/components/common/BottomNavigation";
+
 import { API_BASE_URL } from "@/config/api";
 import Loader from "@/components/common/Loader";
 import RefreshableScrollView from "@/components/common/RefreshableScrollView";
@@ -39,7 +39,7 @@ export default function ServicesScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -55,7 +55,7 @@ export default function ServicesScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -123,7 +123,7 @@ export default function ServicesScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -140,7 +140,7 @@ export default function ServicesScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -281,8 +281,6 @@ export default function ServicesScreen() {
           </View>
         </View>
       </RefreshableScrollView>
-
-      <BottomNavigation activeTab="services" />
       
     </SafeAreaView>
   );

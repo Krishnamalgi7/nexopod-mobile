@@ -40,7 +40,7 @@ export default function NotificationsScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -59,7 +59,7 @@ export default function NotificationsScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -105,7 +105,7 @@ export default function NotificationsScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -124,7 +124,7 @@ export default function NotificationsScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -154,7 +154,7 @@ export default function NotificationsScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -173,7 +173,7 @@ export default function NotificationsScreen() {
 
       if (response.status === 401 || response.status === 403) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 

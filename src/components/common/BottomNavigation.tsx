@@ -14,9 +14,9 @@ interface BottomNavigationProps {
 }
 
 const tabs = [
-  { name: "home", label: "Home", route: "/dashboard", Icon: Home },
-  { name: "bookings", label: "Bookings", route: "/bookings", Icon: ClipboardList },
-  { name: "profile", label: "Profile", route: "/profile", Icon: UserRound },
+  { name: "home", label: "Home", route: "/shopowner/dashboard", Icon: Home },
+  { name: "bookings", label: "Bookings", route: "/shopowner/bookings", Icon: ClipboardList },
+  { name: "profile", label: "Profile", route: "/shopowner/profile", Icon: UserRound },
 ] as const;
 
 export default function BottomNavigation({

@@ -83,7 +83,7 @@ export default function DashboardScreen() {
       const token = await SecureStore.getItemAsync("shopOwnerToken");
 
       if (!token) {
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
@@ -104,12 +104,12 @@ export default function DashboardScreen() {
       // 4. Clear invalid sessions and return to login.
       if (response.status === 401) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
-        router.replace("/login");
+        router.replace("/auth/login");
         return;
       }
 
       if (response.status === 403) {
-        router.replace("/profile");
+        router.replace("/shopowner/profile");
         return;
       }
 
@@ -180,7 +180,7 @@ export default function DashboardScreen() {
 
               <View className="flex-row items-center gap-3">
                 <Pressable
-                  onPress={() => router.push("/notifications")}
+                  onPress={() => router.push("/shopowner/notifications")}
                   className="h-12 w-12 items-center justify-center rounded-2xl border border-[#E8EEF1] bg-white"
                 >
                   <Bell size={23} color="#123D4A" />
@@ -266,7 +266,7 @@ export default function DashboardScreen() {
               </View>
 
               <Pressable
-                onPress={() => router.push("/profile")}
+                onPress={() => router.push("/shopowner/profile")}
                 className="mt-4 items-center rounded-xl bg-red-600 py-3"
               >
                 <Text className="text-sm font-bold text-white">
@@ -277,7 +277,7 @@ export default function DashboardScreen() {
           )}
 
           <Pressable
-            onPress={() => router.push("/bookings")}
+            onPress={() => router.push("/shopowner/bookings")}
             className="mt-5 flex-row items-center rounded-2xl border border-[#E8EEF1] bg-white p-4 active:bg-[#F0FDF9]"
           >
             <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#E6FBF5]">
@@ -349,7 +349,7 @@ export default function DashboardScreen() {
               Recent Bookings
             </Text>
 
-            <Pressable onPress={() => router.push("/bookings")}>
+            <Pressable onPress={() => router.push("/shopowner/bookings")}>
               <Text className="text-sm font-bold text-[#00A985]">
                 View All ›
               </Text>

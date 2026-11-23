@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { API_BASE_URL } from "../config/api";
+import { API_BASE_URL } from "../../config/api";
 
 import {
   KeyboardAvoidingView,
@@ -135,7 +135,11 @@ export default function LoginScreen() {
       // 5. Securely save the authentication token.
       await SecureStore.setItemAsync("shopOwnerToken", result.data.token);
 
-      router.replace(result.data.store.isActive ? "/dashboard" : "/profile");
+      router.replace(
+        result.data.store.isActive
+          ? "/shopowner/dashboard"
+          : "/shopowner/profile",
+      );
     } catch (error) {
       console.error(
         "[ShopOwner] Login request failed:",
