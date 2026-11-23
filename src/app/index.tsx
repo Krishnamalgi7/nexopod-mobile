@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ShieldCheck } from "lucide-react-native";
+import { API_BASE_URL } from "@/config/api";
 
 const onboardingImages = [
   require("../../assets/images/onboarding/welcome.png"),
@@ -33,9 +34,28 @@ export default function HomeScreen() {
         const token = await SecureStore.getItemAsync("shopOwnerToken");
 
         if (token) {
-          router.replace("/dashboard");
-          return;
-        }
+  const response = await fetch(
+    `${API_BASE_URL}/api/shop-owners/me`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  const result = await response.json();
+
+  if (response.ok && result.success) {
+    router.replace(
+      result.data.store.isActive ? "/dashboard" : "/profile",
+    );
+    return;
+  }
+
+  await SecureStore.deleteItemAsync("shopOwnerToken");
+  router.replace("/login");
+  return;
+}
       } catch (error) {
         console.error("[Onboarding] Session check failed.");
       } finally {

@@ -4,11 +4,10 @@ import { useRouter } from "expo-router";
 import {
   Home,
   ClipboardList,
-  BriefcaseBusiness,
   UserRound,
 } from "lucide-react-native";
 
-type TabName = "home" | "bookings" | "services" | "profile";
+type TabName = "home" | "bookings" | "profile";
 
 interface BottomNavigationProps {
   activeTab: TabName;
@@ -17,7 +16,6 @@ interface BottomNavigationProps {
 const tabs = [
   { name: "home", label: "Home", route: "/dashboard", Icon: Home },
   { name: "bookings", label: "Bookings", route: "/bookings", Icon: ClipboardList },
-  { name: "services", label: "Services", route: "/services", Icon: BriefcaseBusiness },
   { name: "profile", label: "Profile", route: "/profile", Icon: UserRound },
 ] as const;
 

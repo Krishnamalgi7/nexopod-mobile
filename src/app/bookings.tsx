@@ -41,6 +41,8 @@ export default function BookingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [updatingBookingId, setUpdatingBookingId] = useState("");
   const [error, setError] = useState("");
+  const [isStoreActive, setIsStoreActive] = useState<boolean | null>(null);
+  const [activationModalVisible, setActivationModalVisible] = useState(false);
   const [selectedService, setSelectedService] = useState<
     "all" | "Phone Charging" | "Pick Me Later"
   >("all");
@@ -49,6 +51,53 @@ export default function BookingsScreen() {
   const loadedCursors = useRef<string[]>([]);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    const fetchStoreStatus = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("shopOwnerToken");
+
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/shop-owners/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const result = await response.json();
+
+        if (response.status === 401) {
+          await SecureStore.deleteItemAsync("shopOwnerToken");
+          router.replace("/login");
+          return;
+        }
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Unable to fetch store status.");
+        }
+
+        const active = result.data.store.isActive;
+
+        setIsStoreActive(active);
+
+        if (!active) {
+          setActivationModalVisible(true);
+        }
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to fetch store status.",
+        );
+      }
+    };
+
+    fetchStoreStatus();
+  }, [router]);
 
   // Fetch bookings from the API
   const fetchBookings = useCallback(
@@ -87,10 +136,15 @@ export default function BookingsScreen() {
 
         const result = await response.json();
 
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           await SecureStore.deleteItemAsync("shopOwnerToken");
           router.replace("/login");
           return null;
+        }
+
+        if (response.status === 403) {
+          router.replace("/profile");
+          return;
         }
 
         if (!response.ok) {
@@ -202,8 +256,6 @@ export default function BookingsScreen() {
     setSelectedService(service);
     loadedCursors.current = [];
     setLoading(true);
-
-    
   };
 
   // Handle pull-to-refresh
@@ -250,7 +302,7 @@ export default function BookingsScreen() {
 
       const result = await response.json();
 
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
         router.replace("/login");
         return;
@@ -379,6 +431,7 @@ export default function BookingsScreen() {
               <>
                 {phoneChargingBookings.map((booking) => (
                   <BookingCard
+                    isStoreActive={isStoreActive === true}
                     key={booking._id}
                     booking={booking}
                     updatingBookingId={updatingBookingId}
@@ -390,6 +443,7 @@ export default function BookingsScreen() {
 
                 {pickMeLaterBookings.map((booking) => (
                   <BookingCard
+                    isStoreActive={isStoreActive === true}
                     key={booking._id}
                     booking={booking}
                     updatingBookingId={updatingBookingId}
@@ -427,6 +481,7 @@ export default function BookingsScreen() {
 }
 
 interface BookingCardProps {
+  isStoreActive: boolean;
   booking: Booking;
   updatingBookingId: string;
   onUpdateStatus: (
@@ -438,6 +493,7 @@ interface BookingCardProps {
 }
 
 function BookingCard({
+  isStoreActive,
   booking,
   updatingBookingId,
   onUpdateStatus,
@@ -495,8 +551,12 @@ function BookingCard({
 
       {action ? (
         <Pressable
-          onPress={() => onUpdateStatus(booking._id, action.status)}
-          disabled={Boolean(updatingBookingId)}
+          onPress={() => {
+            if (isStoreActive) {
+              onUpdateStatus(booking._id, action.status);
+            }
+          }}
+          disabled={!isStoreActive || Boolean(updatingBookingId)}
           className={`mt-4 h-12 flex-row items-center justify-center rounded-xl bg-[#00B894] ${
             updatingBookingId ? "opacity-60" : "active:opacity-80"
           }`}

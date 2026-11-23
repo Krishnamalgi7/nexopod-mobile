@@ -16,7 +16,7 @@ import {
 } from "lucide-react-native";
 
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Loader from "@/components/common/Loader";
@@ -102,9 +102,14 @@ export default function DashboardScreen() {
       const result = await response.json();
 
       // 4. Clear invalid sessions and return to login.
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401) {
         await SecureStore.deleteItemAsync("shopOwnerToken");
         router.replace("/login");
+        return;
+      }
+
+      if (response.status === 403) {
+        router.replace("/profile");
         return;
       }
 
@@ -209,9 +214,19 @@ export default function DashboardScreen() {
           {/* Store Overview */}
           <View className="overflow-hidden rounded-3xl bg-[#006B63] p-5">
             <View className="flex-row items-center">
-              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#00A98F]">
-                <Store size={34} color="#FFFFFF" />
-              </View>
+              {dashboard?.store.image?.path ? (
+                <Image
+                  source={{
+                    uri: `${API_BASE_URL}${dashboard.store.image.path}`,
+                  }}
+                  className="h-16 w-16 rounded-2xl"
+                  resizeMode="cover"
+                />
+              ) : (
+                <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#00A98F]">
+                  <Store size={34} color="#FFFFFF" />
+                </View>
+              )}
 
               <View className="ml-4 flex-1">
                 <Text className="text-xl font-extrabold text-white">
@@ -229,10 +244,37 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
               </View>
-
-              <Store size={54} color="#B7E9D8" />
             </View>
           </View>
+
+          {!dashboard?.store.isActive && (
+            <View className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <View className="flex-row items-center">
+                <View className="h-9 w-9 items-center justify-center rounded-full bg-red-100">
+                  <Store size={19} color="#DC2626" />
+                </View>
+
+                <View className="ml-3 flex-1">
+                  <Text className="text-base font-bold text-red-700">
+                    Store Currently Inactive
+                  </Text>
+                  <Text className="mt-1 text-xs leading-5 text-red-600">
+                    Your store is not accepting new bookings or providing
+                    services. You can still access your dashboard.
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={() => router.push("/profile")}
+                className="mt-4 items-center rounded-xl bg-red-600 py-3"
+              >
+                <Text className="text-sm font-bold text-white">
+                  Go to Profile
+                </Text>
+              </Pressable>
+            </View>
+          )}
 
           <Pressable
             onPress={() => router.push("/bookings")}

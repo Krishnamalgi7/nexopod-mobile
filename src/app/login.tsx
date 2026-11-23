@@ -25,7 +25,6 @@ export default function LoginScreen() {
 
   const [otpRequested, setOtpRequested] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
-  
 
   // 1. Request a new OTP from the backend.
   const handleSendOtp = async () => {
@@ -58,7 +57,6 @@ export default function LoginScreen() {
       setOtpRequested(true);
       setOtp("");
       setSecondsRemaining(result.data.expiresIn || 120);
-      
 
       console.log("[ShopOwner] OTP request successful.");
     } catch (error) {
@@ -137,8 +135,7 @@ export default function LoginScreen() {
       // 5. Securely save the authentication token.
       await SecureStore.setItemAsync("shopOwnerToken", result.data.token);
 
-      // 6. Navigate to the dashboard after successful verification.
-      router.replace("/dashboard");
+      router.replace(result.data.store.isActive ? "/dashboard" : "/profile");
     } catch (error) {
       console.error(
         "[ShopOwner] Login request failed:",
@@ -205,7 +202,7 @@ export default function LoginScreen() {
                   setOtpRequested(false);
                   setOtp("");
                   setSecondsRemaining(0);
-                  
+
                   setError("");
                 }}
                 placeholder="Enter mobile number"
@@ -238,8 +235,6 @@ export default function LoginScreen() {
                     className="ml-3 flex-1 text-base tracking-[5px] text-[#073B4C]"
                   />
                 </View>
-
-                
 
                 <View className="mb-6 flex-row items-center justify-between">
                   {secondsRemaining > 0 ? (

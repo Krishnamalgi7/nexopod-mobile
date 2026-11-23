@@ -1,4 +1,3 @@
-
 import { io, Socket } from "socket.io-client";
 import * as SecureStore from "expo-secure-store";
 
@@ -18,7 +17,7 @@ type BookingEventName = "new_booking" | "booking_completed";
 
 type BookingEventHandler = (
   event: BookingSocketEvent,
-  eventName: BookingEventName
+  eventName: BookingEventName,
 ) => void;
 
 let shopOwnerSocket: Socket | null = null;
@@ -28,7 +27,7 @@ const listeners = new Set<BookingEventHandler>();
 
 const notifyListeners = (
   event: BookingSocketEvent,
-  eventName: BookingEventName
+  eventName: BookingEventName,
 ) => {
   listeners.forEach((listener) => listener(event, eventName));
 };
@@ -63,6 +62,15 @@ export const connectShopOwnerSocket = async () => {
     });
 
     shopOwnerSocket.on("connect_error", (error) => {
+      if (
+        error.message.includes("no longer authorized") ||
+        error.message.includes("Store is inactive")
+      ) {
+        console.info("[Socket] Store is inactive. Socket disconnected.");
+        disconnectShopOwnerSocket();
+        return;
+      }
+
       console.error("[Socket] Connection failed:", error.message);
     });
   }
@@ -70,9 +78,7 @@ export const connectShopOwnerSocket = async () => {
   return shopOwnerSocket;
 };
 
-export const subscribeToBookingEvents = (
-  handler: BookingEventHandler
-) => {
+export const subscribeToBookingEvents = (handler: BookingEventHandler) => {
   listeners.add(handler);
 
   return () => {
