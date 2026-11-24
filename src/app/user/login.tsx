@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "../../config/api";
 
@@ -17,7 +17,10 @@ import { LockKeyhole, Smartphone, ShieldCheck } from "lucide-react-native";
 
 export default function UserLoginScreen() {
   const router = useRouter();
-
+  const { storeId, service } = useLocalSearchParams<{
+    storeId?: string;
+    service?: string;
+  }>();
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -109,8 +112,11 @@ export default function UserLoginScreen() {
 
       await SecureStore.setItemAsync("customerToken", result.data.token);
 
-      if (!result.data.customer.name?.trim()) {
-        router.replace("/user/complete-profile");
+      if (storeId && service) {
+        router.replace({
+          pathname: "/user/store/store-details",
+          params: { storeId, service },
+        });
       } else {
         router.replace("/user/home");
       }

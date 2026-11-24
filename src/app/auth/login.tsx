@@ -38,7 +38,7 @@ export default function LoginScreen() {
 
     try {
       // 2. Request OTP for the registered store number.
-      const response = await fetch(`${API_BASE_URL}/api/shop-owners/send-otp`, {
+      const response = await fetch(`${API_BASE_URL}/api/role-auth/send-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,7 +113,7 @@ export default function LoginScreen() {
 
     try {
       // 3. Send credentials to the Shop Owner login API.
-      const response = await fetch(`${API_BASE_URL}/api/shop-owners/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/role-auth/verify-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -133,13 +133,42 @@ export default function LoginScreen() {
       }
 
       // 5. Securely save the authentication token.
-      await SecureStore.setItemAsync("shopOwnerToken", result.data.token);
+      // Handle users who have both roles.
+      if (result.data.requiresRoleSelection) {
+        router.replace({
+          pathname: "/auth/select-role",
+          params: {
+            selectionToken: result.data.selectionToken,
+          },
+        });
+        return;
+      }
 
-      router.replace(
-        result.data.store.isActive
-          ? "/shopowner/dashboard"
-          : "/shopowner/profile",
-      );
+      // Customer login.
+      if (result.data.role === "customer") {
+        await SecureStore.setItemAsync("customerToken", result.data.token);
+
+        router.replace(
+          result.data.customer.name?.trim()
+            ? "/user/home"
+            : "/user/complete-profile",
+        );
+        return;
+      }
+
+      // Shop Owner login.
+      if (result.data.role === "shopOwner") {
+        await SecureStore.setItemAsync("shopOwnerToken", result.data.token);
+
+        router.replace(
+          result.data.store.isActive
+            ? "/shopowner/dashboard"
+            : "/shopowner/profile",
+        );
+        return;
+      }
+
+      setError("Unable to identify your account role. Please try again.");
     } catch (error) {
       console.error(
         "[ShopOwner] Login request failed:",

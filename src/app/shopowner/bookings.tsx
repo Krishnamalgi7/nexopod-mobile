@@ -19,14 +19,14 @@ interface Booking {
   _id: string;
   service: "Phone Charging" | "Pick Me Later";
   startAt: string;
-  status: "confirmed" | "in_progress" | "completed";
+  status: "confirmed" | "completed" | "cancelled";
   customerId?: {
     _id: string;
     name: string;
   } | null;
   nextAction: {
     label: string;
-    status: "in_progress" | "completed";
+    status: "completed";
   } | null;
 }
 
@@ -337,7 +337,7 @@ export default function BookingsScreen() {
 
   // Get a user-friendly label for the booking status
   const getStatusLabel = (status: Booking["status"]) => {
-    if (status === "in_progress") return "In Progress";
+    if (status === "cancelled") return "Cancelled";
     if (status === "completed") return "Completed";
     return "Confirmed";
   };
@@ -518,19 +518,19 @@ function BookingCard({
 
         <View
           className={`rounded-full px-3 py-1 ${
-            booking.status === "completed"
-              ? "bg-green-50"
-              : booking.status === "in_progress"
-                ? "bg-blue-50"
+            booking.status === "cancelled"
+              ? "bg-red-50"
+              : booking.status === "completed"
+                ? "bg-green-50"
                 : "bg-amber-50"
           }`}
         >
           <Text
             className={`text-xs font-semibold ${
-              booking.status === "completed"
-                ? "text-green-700"
-                : booking.status === "in_progress"
-                  ? "text-blue-700"
+              booking.status === "cancelled"
+                ? "text-red-700"
+                : booking.status === "completed"
+                  ? "text-green-700"
                   : "text-amber-700"
             }`}
           >
@@ -570,7 +570,9 @@ function BookingCard({
       ) : (
         <View className="mt-4 rounded-xl bg-[#F1F5F9] py-3">
           <Text className="text-center text-sm font-semibold text-[#64748B]">
-            Booking completed
+            {booking.status === "cancelled"
+              ? "Booking cancelled"
+              : "Booking completed"}
           </Text>
         </View>
       )}

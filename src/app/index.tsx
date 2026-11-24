@@ -11,7 +11,6 @@ import { API_BASE_URL } from "@/config/api";
 const onboardingImages = [
   require("../../assets/images/onboarding/welcome.png"),
   require("../../assets/images/onboarding/discover.png"),
-  require("../../assets/images/onboarding/login-intro.png"),
 ];
 
 export default function HomeScreen() {
@@ -90,7 +89,8 @@ export default function HomeScreen() {
       setCurrentSlide((previous) => previous + 1);
       return;
     }
-    router.push("/auth/login");
+
+    router.replace("/user/home");
   };
 
   if (checkingSession) {
@@ -117,10 +117,30 @@ export default function HomeScreen() {
         className="flex-1 justify-end px-6 pb-24"
         edges={["top", "bottom"]}
       >
+        {currentSlide === 1 && (
+  <View
+    style={{
+      position: "absolute",
+      top: 45,
+      right: 15,
+      zIndex: 20,
+    }}
+  >
+    <Pressable
+      onPress={() => router.push("/auth/login")}
+      className="rounded-full bg-white px-5 py-3"
+    >
+      <Text className="text-sm font-semibold text-[#00A985]">
+        Shop Owner Login
+      </Text>
+    </Pressable>
+  </View>
+)}
+
         {/* 3. Show pagination dots only on the first two screens. */}
         {currentSlide < 2 && (
           <View className="mb-6 flex-row items-center justify-center gap-3">
-            {[0, 1, 2].map((index) => (
+            {[0, 1].map((index) => (
               <View
                 key={index}
                 className={`h-3 rounded-full ${
@@ -140,7 +160,9 @@ export default function HomeScreen() {
             className="h-[58px] items-center justify-center rounded-3xl bg-[#00B894] shadow-lg active:opacity-80"
           >
             <Text className="text-lg font-bold text-white">
-              {currentSlide === 2 ? "Login" : "Next"}
+              {currentSlide === onboardingImages.length - 1
+                ? "Get Started"
+                : "Next"}
             </Text>
           </Pressable>
 
