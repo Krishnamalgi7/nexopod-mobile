@@ -58,6 +58,10 @@ export default function CreateBookingScreen() {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
 
+  const [customerName, setCustomerName] = useState("User");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [hasSelectedStartTime, setHasSelectedStartTime] = useState(false);
+
   const fetchStore = useCallback(async () => {
     try {
       const response = await fetch(
@@ -88,6 +92,34 @@ export default function CreateBookingScreen() {
       setLoading(false);
     }
   }, [storeId, fetchStore]);
+
+  useEffect(() => {
+    const fetchCustomerProfile = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("customerToken");
+
+        if (!token) return;
+
+        const response = await fetch(`${API_BASE_URL}/api/customers/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          const customer = result.data.customer;
+          setCustomerName(customer.name?.trim() || "User");
+          setCustomerPhone(customer.phone || "");
+        }
+      } catch (error) {
+        console.error("Failed to fetch customer profile:", error);
+      }
+    };
+
+    fetchCustomerProfile();
+  }, []);
 
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -326,7 +358,8 @@ export default function CreateBookingScreen() {
               onChange={(event, date) => {
                 setShowDatePicker(false);
                 if (event.type === "set" && date) {
-                  setSelectedDate(date);
+                  setStartTime(date);
+                  setHasSelectedStartTime(true);
                 }
               }}
             />
@@ -379,6 +412,22 @@ export default function CreateBookingScreen() {
                 }
               }}
             />
+          )}
+
+          {hasSelectedStartTime && (
+            <View className="mt-4 rounded-xl border border-[#D5EEE8] bg-[#E4F7F3] p-4">
+              <Text className="text-sm font-bold text-[#142D46]">
+                Booking Customer
+              </Text>
+
+              <Text className="mt-2 text-sm font-semibold text-[#142D46]">
+                {customerName}
+              </Text>
+
+              <Text className="mt-1 text-sm text-[#64748B]">
+                {customerPhone ? `+91 ${customerPhone}` : "Phone unavailable"}
+              </Text>
+            </View>
           )}
 
           {availabilityLoading ? (
